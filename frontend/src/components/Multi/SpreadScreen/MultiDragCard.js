@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useRecoilValue, useRecoilState } from "recoil";
 import { multiManagerAtom, multiModelAtom } from "../../../atom/multiAtom";
 import Draggable from "react-draggable";
+
 let posX = 0;
 let posY = 0;
 
@@ -629,6 +630,7 @@ function MultiDragCard(props) {
     }
     return temp;
   };
+  console.log(process.env);
   const onDoubleClickHandler = (e) => {
     if (
       thisModelFirstCardInfoArr[CurrentChildNumber][cardCount].isInSpread ===
@@ -654,7 +656,7 @@ function MultiDragCard(props) {
         imgsrc={
           privateRotate === true
             ? `${process.env.PUBLIC_URL}/img/Default0.png`
-            : `${process.env.PUBLIC_URL}/img/Default0.png}`
+            : ``
         }
         drag
         dragMomentum={false}

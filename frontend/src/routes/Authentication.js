@@ -54,7 +54,6 @@ function Authentication() {
   const PASSWORD = `spaceorca`;
 
   const navigate = useNavigate();
-
   const onChangeHandler = (e) => {
     setValue(e.target.value);
   };
