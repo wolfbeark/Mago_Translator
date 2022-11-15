@@ -5,7 +5,6 @@ import App from "./App";
 import { createGlobalStyle } from "styled-components";
 import { BrowserRouter } from "react-router-dom";
 import { RecoilRoot } from "recoil";
-import { env } from "process";
 
 const GlobalStyle = createGlobalStyle`
   html, body, div, span, applet, object, iframe,
@@ -36,6 +35,7 @@ const GlobalStyle = createGlobalStyle`
   body {
     line-height: 1;
     -ms-overflow-style: none;
+    //overflow: hidden;
   }
   ::-webkit-scrollbar {
     display: none;

@@ -190,6 +190,7 @@ function SecondSpreadScreen() {
   const [openError, setOpenError] = useState(false);
   const [absCarpetY, setAbsCarpetY] = useState();
   const [absWaitingY, setAbsWaitingY] = useState();
+  const [waitingWidth, setWaitinWidth] = useState();
   useEffect(() => {
     let carpetRect = carpetRef.current.getBoundingClientRect();
     let waitingRect = cardWaitingZoneRef.current.getBoundingClientRect();
@@ -203,6 +204,7 @@ function SecondSpreadScreen() {
     let wAbsolteTop = wScrolledTopLength + wRelativeTop;
     setAbsCarpetY(absoluteTop);
     setAbsWaitingY(wAbsolteTop);
+    setWaitinWidth(waitingRect.width);
   }, []);
 
   useEffect(() => {
@@ -230,7 +232,6 @@ function SecondSpreadScreen() {
     let tempTotal = totalRef.current.getBoundingClientRect();
     let tempInfo = cardWaitingZoneRef.current.getBoundingClientRect();
     let tempCarpetInfo = carpetRef.current.getBoundingClientRect();
-
     setWaitingZoneInfo({
       width: tempInfo.width,
       height: tempInfo.height,
@@ -274,7 +275,10 @@ function SecondSpreadScreen() {
         <CardStorageContainer>
           <CardStorage>
             <CardWaitingZone>
-              <CardWaitingInBox ref={cardWaitingZoneRef}>
+              <CardWaitingInBox
+                ref={cardWaitingZoneRef}
+                waitingwidth={waitingWidth}
+              >
                 {
                   // multiModel[multiManager.CurrentModelNumber].SecondSpread[
                   //   multiModel[multiManager.CurrentModelNumber].CurrentChildNumber

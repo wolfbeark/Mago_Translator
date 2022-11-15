@@ -11,23 +11,42 @@ let posX = 0;
 let posY = 0;
 
 const MultiDragCardWrapper = styled(motion.div)`
-  width: ${(props) => props.waitinginfo.width}px;
-  height: ${(props) => props.waitinginfo.height}px;
+  /* width: ${(props) => props.waitinginfo.width}px;
+  height: ${(props) => props.waitinginfo.height}px; */
+  width: ${(props) =>
+    props.privaterotate === "false"
+      ? `${props.waitinginfo.width}px`
+      : `${props.waitinginfo.height}px`};
+  height: ${(props) =>
+    props.privaterotate === "false"
+      ? `${props.waitinginfo.height}px`
+      : `${props.waitinginfo.width}px`};
   background-color: orangered;
   position: absolute;
-  background-image: url(${(props) => props.imgsrc});
-  //z-index: 100;
-  /* ${(props) => {
-    if (props.privaterotate === "false") {
-      return css`
-        transform: rotateZ("0");
-      `;
-    } else {
-      return css`
-        transform: rotateZ("-90deg");
-      `;
-    }
-  }} */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  & > img {
+    width: 100%;
+    height: 100%;
+    background-image: url(${(props) => props.imgsrc});
+    ${(props) => {
+      if (props.privaterotate === "false") {
+        return css`
+          transform: rotateZ(0deg);
+          background-size: 100% 100%;
+        `;
+      } else {
+        return css`
+          transform: rotateZ(-90deg);
+          background-size: 100% 100%;
+        `;
+      }
+    }}
+    width: ${(props) => props.waitinginfo.width}px;
+    height: ${(props) => props.waitinginfo.height}px;
+  }
 `;
 
 function MultiDragCard(props) {
@@ -40,6 +59,9 @@ function MultiDragCard(props) {
   const waitingZoneInfo = props.waitingZoneInfo;
   const defaultPos = props.defaultPos;
   const refArr = props.refArr;
+  const absWaitingY = props.absWaitingY;
+  const absWaitingX = props.absWaitingX;
+
   const multiManager = useRecoilValue(multiManagerAtom);
   const [multiModel, setMultiModel] = useRecoilState(multiModelAtom);
   const { CurrentModelNumber } = multiManager;
@@ -179,11 +201,10 @@ function MultiDragCard(props) {
 
   const cardAniVar = {
     initial: {
-      opacity: 0,
-      rotateZ: privateRotate === true ? -90 : 0,
+      opacity: 1,
     },
     rotateTrue: {
-      rotateZ: 0,
+      rotateZ: -90,
       opacity: 1,
     },
     rotateFalse: {
@@ -232,7 +253,7 @@ function MultiDragCard(props) {
       x: tempObj.x,
       y: tempObj.y,
     });
-  }, [privateRotate]);
+  }, []);
 
   useEffect(() => {
     if (
@@ -329,24 +350,58 @@ function MultiDragCard(props) {
     let cardObjItem = {
       x: cardObj.x,
       y: cardObj.y,
+      width: cardObj.width,
+      height: cardObj.height,
     };
+    let rotateTrueX = (waitingZoneInfo.height - waitingZoneInfo.width) / 2;
+    let rotateTrueY = -(waitingZoneInfo.height / 2 - waitingZoneInfo.width / 2);
+
     // 카드의 상대적 위치
-    if (
-      thisModelFirstCardInfoArr[CurrentChildNumber][cardCount].isRotate ===
-      false
-    ) {
-      alpha = waitingZoneInfo.x - (e.pageX - e.offsetX);
-      beta = waitingZoneInfo.y - (e.pageY - e.offsetY);
+    if (privateRotate === false) {
+      alpha = -(waitingZoneInfo.x - (e.pageX - e.offsetX));
+      beta = -(waitingZoneInfo.y - (e.pageY - e.offsetY));
     } else {
-      alpha = waitingZoneInfo.x - (e.pageX - e.offsetX);
-      beta = waitingZoneInfo.y - (e.pageY - e.offsetY);
+      let tempX = (waitingZoneInfo.height - waitingZoneInfo.width) / 2;
+      let tempY = -(waitingZoneInfo.height / 2 - waitingZoneInfo.width / 2);
+
+      alpha = tempX - (waitingZoneInfo.x - (e.pageX - e.offsetY)); // 오케이
+      beta = -(
+        tempY +
+        (waitingZoneInfo.y - (e.pageY + e.offsetX - waitingZoneInfo.height))
+      );
     }
+    //console.log("alpha : ", alpha);
+    //console.log("beta : ", beta);
 
     // 에러 발생시 위치
     let gamma = waitingZoneInfo.x - carpetInfo.left;
     let delta = waitingZoneInfo.x - carpetInfo.right + cardInfo.width;
     let epsilon = carpetInfo.top - cardInfo.height;
     let zeta = carpetInfo.bottom - cardInfo.height * 2;
+
+    // Rotate False Error Pos
+    let errPosX = -(waitingZoneInfo.x - cardObjItem.x);
+    let errPosY = cardObjItem.y - waitingZoneInfo.y;
+    let errLeft = -(waitingZoneInfo.x - carpetInfo.left);
+    let errRight =
+      -(waitingZoneInfo.x - carpetInfo.right) - waitingZoneInfo.width;
+    let errTop = -(waitingZoneInfo.top - carpetInfo.top);
+    let errBottom = errTop + carpetInfo.height - waitingZoneInfo.height;
+
+    // Rotate True Error Pos
+    let errRotatePosX = rotateTrueX - (waitingZoneInfo.x - cardObjItem.x);
+    let errRotatePosY = -(waitingZoneInfo.y - cardObjItem.y - rotateTrueY);
+
+    let errRotateLeft = -(waitingZoneInfo.x - carpetInfo.left - rotateTrueX);
+    let errRotateRight = -(
+      waitingZoneInfo.x -
+      carpetInfo.right -
+      rotateTrueX +
+      waitingZoneInfo.height
+    );
+    let errRotateTop = rotateTrueY - (waitingZoneInfo.y - carpetInfo.top);
+    let errRotateBottom =
+      errRotateTop + carpetInfo.height - waitingZoneInfo.width;
 
     if (
       testX >= carpetInfo.left &&
@@ -364,12 +419,21 @@ function MultiDragCard(props) {
       ) {
         let tempObj = JSON.parse(JSON.stringify(multiModel));
 
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = -alpha;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = -beta;
+        if (privateRotate === false) {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = alpha;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = beta;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotatePosX;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotatePosY;
+        }
 
         setMultiModel(tempObj);
       }
@@ -378,108 +442,155 @@ function MultiDragCard(props) {
 
       if (testX < carpetInfo.left) {
         console.log("좌");
-        console.log(cardObjItem.x);
-        let temp = -gamma;
-        let temp2 = cardObjItem.y - waitingZoneInfo.y;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp2;
-        // -(waitingZoneInfo.top - carpetInfo.top) +
-        // e.offsetY -
-        // waitingZoneInfo.height -
-        // (e.pageY - e.offsetY);
+        //console.log(cardObjItem.x);
+        if (privateRotate === false) {
+          let temp = -gamma;
+          let temp2 = cardObjItem.y - waitingZoneInfo.y;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errLeft;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errPosY;
+        } else {
+          // privateRotate === true
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotateLeft;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotatePosY;
+        }
       }
       if (testX > carpetInfo.right) {
         // 우
         console.log("우");
-        // console.log("wait : ", waitingZoneInfo.x);
-        // console.log("cardX : ", cardObjItem.x);
-        // console.log("pageX : ", testX);
-        // console.log("c right : ", carpetInfo.right);
-        // console.log("waitY : ", waitingZoneInfo.y);
-        // console.log("cardY : ", cardObjItem.y);
-        let temp = -(waitingZoneInfo.x - carpetInfo.right) - cardInfo.width;
-        let temp2 = cardObjItem.y - waitingZoneInfo.y;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp;
-        // Y
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp2;
+        if (privateRotate === false) {
+          let temp = -(waitingZoneInfo.x - carpetInfo.right) - cardInfo.width;
+          let temp2 = cardObjItem.y - waitingZoneInfo.y;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRight;
+          // Y
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errPosY;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotateRight;
+          // Y
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotatePosY;
+        }
       }
       if (testY < carpetInfo.top) {
         console.log("상");
-        let temp = -(waitingZoneInfo.top - carpetInfo.top);
-        let temp2 = -(waitingZoneInfo.x - cardObjItem.x);
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp2;
-        // -(
-        //   waitingZoneInfo.left -
-        //   e.pageX +
-        //   cardInfo.width / 2
-        // );
+        if (privateRotate === false) {
+          let temp = -(waitingZoneInfo.top - carpetInfo.top);
+          let temp2 = -(waitingZoneInfo.x - cardObjItem.x);
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errTop;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errPosX;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotateTop;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotatePosX;
+        }
       }
       if (testY > carpetInfo.bottom) {
         console.log("하");
-        let temp = carpetInfo.height - cardInfo.height;
-        let temp2 = -(waitingZoneInfo.x - cardObjItem.x);
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp;
-        //-(waitingZoneInfo.bottom - carpetInfo.bottom);
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp2;
-        // -(
-        //   waitingZoneInfo.left -
-        //   e.pageX +
-        //   cardInfo.width / 2
-        // );
+        if (privateRotate === false) {
+          let temp = carpetInfo.height - cardInfo.height;
+          let temp2 = -(waitingZoneInfo.x - cardObjItem.x);
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errBottom;
+          //-(waitingZoneInfo.bottom - carpetInfo.bottom);
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errPosX;
+        } else {
+          //let temp3 = rotateTrueX - (waitingZoneInfo.x - cardObjItem.x);
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotateBottom;
+          //-(waitingZoneInfo.bottom - carpetInfo.bottom);
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotatePosX;
+        }
       }
 
       if (testX < carpetInfo.left && testY > carpetInfo.bottom) {
         //좌하
         console.log("좌하");
-        let temp = -gamma;
-        let temp2 = carpetInfo.height - cardInfo.height;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp2;
+        if (privateRotate === false) {
+          let temp = -gamma;
+          let temp2 = carpetInfo.height - cardInfo.height;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errLeft;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errBottom;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotateLeft;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotateBottom;
+        }
       }
       if (testX < carpetInfo.left && testY < carpetInfo.top) {
         //좌상
         console.log("좌상");
-        let temp = -gamma;
-        let temp2 = -(waitingZoneInfo.top - carpetInfo.top);
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp2;
+        if (privateRotate === false) {
+          let temp = -gamma;
+          let temp2 = -(waitingZoneInfo.top - carpetInfo.top);
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errLeft;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errTop;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotateLeft;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotateTop;
+        }
       }
       if (testX > carpetInfo.right && testY < carpetInfo.top) {
         // 우상
         console.log("우상");
-        let temp = -(waitingZoneInfo.x - carpetInfo.right) - cardInfo.width;
-        let temp2 = -(waitingZoneInfo.top - carpetInfo.top);
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp2;
+        if (privateRotate === false) {
+          let temp = -(waitingZoneInfo.x - carpetInfo.right) - cardInfo.width;
+          let temp2 = -(waitingZoneInfo.top - carpetInfo.top);
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRight;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errTop;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotateRight;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotateTop;
+        }
         // -(
         //   waitingZoneInfo.left -
         //   carpetInfo.right +
@@ -490,15 +601,24 @@ function MultiDragCard(props) {
         //우하
         // testX === e.pageX
         console.log("우하");
-        let temp = -(waitingZoneInfo.x - carpetInfo.right) - cardInfo.width;
-        let temp2 = carpetInfo.height - cardInfo.height;
+        if (privateRotate === false) {
+          let temp = -(waitingZoneInfo.x - carpetInfo.right) - cardInfo.width;
+          let temp2 = carpetInfo.height - cardInfo.height;
 
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp2;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRight;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errBottom;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errRotateRight;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errRotateBottom;
+        }
         // -(
         //   waitingZoneInfo.x -
         //   carpetInfo.right +
@@ -520,7 +640,6 @@ function MultiDragCard(props) {
       }, 1000);
     }
   };
-  console.log(cardInfo);
   const testItem = () => {
     let temp;
     if (thisModelDeckType !== 0) {
@@ -533,34 +652,23 @@ function MultiDragCard(props) {
           // if cardCount >= firstCardCount
           // if cardType // Tarot LenorMand... 나중에 추가
         ) {
-          temp = {
-            x: threePos[cardCount].x,
-            y: threePos[cardCount].y,
-            width:
-              privateRotate === false
-                ? `${waitingZoneInfo.width}px`
-                : `${waitingZoneInfo.height}px`,
-            height:
-              privateRotate === false
-                ? `${waitingZoneInfo.height}px`
-                : `${waitingZoneInfo.width}px`,
-            // width: `100px`,
-            // height: `100px`,
-          };
+          if (privateRotate === false) {
+            temp = {
+              x: threePos[cardCount].x,
+              y: threePos[cardCount].y,
+            };
+          } else {
+            temp = {
+              x: threePos[cardCount].x,
+              y: threePos[cardCount].y,
+            };
+          }
         } else {
           temp = {
             x: thisModelFirstCardInfoArr[CurrentChildNumber][cardCount]
               .privateX,
             y: thisModelFirstCardInfoArr[CurrentChildNumber][cardCount]
               .privateY,
-            width:
-              privateRotate === false
-                ? `${cardInfo.width}px`
-                : `${cardInfo.height}px`,
-            height:
-              privateRotate === false
-                ? `${cardInfo.height}px`
-                : `${cardInfo.width}px`,
           };
         }
       }
@@ -630,25 +738,36 @@ function MultiDragCard(props) {
     }
     return temp;
   };
-  console.log(process.env);
   const onDoubleClickHandler = (e) => {
-    if (
-      thisModelFirstCardInfoArr[CurrentChildNumber][cardCount].isInSpread ===
-      false
-    ) {
-      return;
-    }
-    let tempCardInfo = cardRef.current.getBoundingClientRect();
-    let alpha;
-    let beta;
+    //e.preventDefault();
+    // if (
+    //   thisModelFirstCardInfoArr[CurrentChildNumber][cardCount].isInSpread ===
+    //   false
+    // ) {
+    //   return;
+    // }
+    // let tempCardInfo = cardRef.current.getBoundingClientRect();
+    // let alpha;
+    // let beta;
 
-    let tempObj = JSON.parse(JSON.stringify(multiModel));
-    tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[CurrentChildNumber][
-      cardCount
-    ].isRotate = !privateRotate;
-    setPrivateRotate((prev) => !prev);
-    setMultiModel(tempObj);
+    // privateRotate === false => true
+    if (privateRotate === false) {
+      let tempObj = JSON.parse(JSON.stringify(multiModel));
+      tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[CurrentChildNumber][
+        cardCount
+      ].isRotate = !privateRotate;
+      setPrivateRotate((prev) => !prev);
+      setMultiModel(tempObj);
+    } else {
+      let tempObj = JSON.parse(JSON.stringify(multiModel));
+      tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[CurrentChildNumber][
+        cardCount
+      ].isRotate = !privateRotate;
+      setPrivateRotate((prev) => !prev);
+      setMultiModel(tempObj);
+    }
   };
+  //console.log(cardCount, " private ", privateRotate);
   return (
     <Draggable nodeRef={cardRef}>
       <MultiDragCardWrapper
@@ -656,7 +775,7 @@ function MultiDragCard(props) {
         imgsrc={
           privateRotate === true
             ? `${process.env.PUBLIC_URL}/img/Default0.png`
-            : ``
+            : `${process.env.PUBLIC_URL}/img/cut1_s.png`
         }
         drag
         dragMomentum={false}
@@ -681,20 +800,15 @@ function MultiDragCard(props) {
         waitinginfo={waitingZoneInfo}
         variants={cardAniVar}
         initial="initial"
-        //privaterotate={privateRotate === true ? "true" : "false"}
-        animate={privateRotate === true ? "rotateTrue" : "rotateFalse"}
-        whileDrag="hover"
+        privaterotate={privateRotate === true ? "true" : "false"}
+        //animate={privateRotate === true ? "rotateTrue" : "rotateFalse"}
+        //whileDrag="hover"
         style={testItem()}
       >
-        {/* {
-          multiModel[CurrentModelNumber].thisModelFirstNumArr[
-            CurrentChildNumber
-          ][cardCount]
-        } */}
-        {cardCount}
+        <img alt="" />
       </MultiDragCardWrapper>
     </Draggable>
   );
 }
 
-export default React.memo(MultiDragCard);
+export default MultiDragCard;

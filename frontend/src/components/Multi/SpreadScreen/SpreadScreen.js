@@ -43,7 +43,7 @@ const SpreadControlBox = styled.div`
 
 const CardStorageContainer = styled.div`
   width: 90%;
-  height: 20%;
+  height: 22%;
   background-color: cadetblue;
   display: flex;
   justify-content: center;
@@ -60,7 +60,7 @@ const CardStorage = styled.div`
   justify-content: space-evenly;
 `;
 const CardWaitingZone = styled.div`
-  width: 45%;
+  width: 40%;
   height: 100%;
   background-color: darkgoldenrod;
   //padding: 1%;
@@ -70,6 +70,7 @@ const CardWaitingZone = styled.div`
 `;
 const CardWaitingInBox = styled.div`
   width: 100%;
+  //height: ${(props) => props.waitingwidth.width * 2.5 + `px`};
   height: 100%;
   display: flex;
   justify-content: center;
@@ -77,7 +78,7 @@ const CardWaitingInBox = styled.div`
   position: relative;
 `;
 const CardExtraDeck = styled.div`
-  width: 45%;
+  width: 40%;
   height: 100%;
   background-color: darkgoldenrod;
 `;
@@ -183,6 +184,26 @@ function SpreadScreen() {
   const [newNumber, setNewNumber] = useState(CurrentChildNumber);
 
   const [openError, setOpenError] = useState(false);
+  const [absWaitingY, setAbsWaitingY] = useState();
+  const [absWaitingX, setAbsWaitingX] = useState();
+  const [waitingWidth, setWaitingWidth] = useState({ width: 0 });
+
+  useEffect(() => {
+    let waitingRect = cardWaitingZoneRef.current.getBoundingClientRect();
+
+    let wRelativeTop = waitingRect.top;
+    let wScrolledTopLength = scrollY;
+    let wAbsolteTop = wScrolledTopLength + wRelativeTop;
+
+    let wRelativeLeft = waitingRect.left;
+    let wScrolledLeftLength = scrollX;
+    let wAbsolteLeft = wScrolledLeftLength + wRelativeLeft;
+    setAbsWaitingY(wAbsolteTop);
+    setAbsWaitingX(wAbsolteLeft);
+    setWaitingWidth({
+      width: waitingRect.width,
+    });
+  }, []);
   useEffect(() => {
     let tempTotal = totalRef.current.getBoundingClientRect();
     let tempInfo = cardWaitingZoneRef.current.getBoundingClientRect();
@@ -263,7 +284,10 @@ function SpreadScreen() {
         <CardStorageContainer>
           <CardStorage>
             <CardWaitingZone>
-              <CardWaitingInBox ref={cardWaitingZoneRef}>
+              <CardWaitingInBox
+                ref={cardWaitingZoneRef}
+                waitingwidth={waitingWidth}
+              >
                 {multiModel[
                   multiManager.CurrentModelNumber
                 ].thisModelFirstCardInfoArr[
@@ -281,6 +305,9 @@ function SpreadScreen() {
                       setOpenError={setOpenError}
                       count={i}
                       refArr={refArr}
+                      absWaitingY={absWaitingY}
+                      absWaitingX={absWaitingX}
+                      waitingWidth={waitingWidth}
                     ></MultiDragCard>
                   );
                 })}

@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { motion } from "framer-motion";
 import Draggable from "react-draggable";
 import { useRecoilState, useRecoilValue } from "recoil";
@@ -9,28 +9,44 @@ import { multiManagerAtom, multiModelAtom } from "../../../atom/multiAtom";
 let posX = 0;
 let posY = 0;
 const MultiDragCardWrapper = styled(motion.div)`
-  width: ${(props) => props.waitinginfo.width}px;
-  height: ${(props) => props.waitinginfo.height}px;
+  /* width: ${(props) => props.waitinginfo.width}px;
+  height: ${(props) => props.waitinginfo.height}px; */
+  width: ${(props) =>
+    props.privaterotate === "false"
+      ? `${props.waitinginfo.width}px`
+      : `${props.waitinginfo.height}px`};
+  height: ${(props) =>
+    props.privaterotate === "false"
+      ? `${props.waitinginfo.height}px`
+      : `${props.waitinginfo.width}px`};
   background-color: orangered;
   position: absolute;
-  //z-index: 100;
-`;
-const cardAniVar = {
-  initial: {},
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
-  rotateTrue: {
-    rotateZ: -90,
-    opacity: 1,
-  },
-  rotateFalse: {
-    rotateZ: 0,
-    opacity: 1,
-  },
-  hover: {
-    scale: 1.1,
-    //boxShadow: '0 0 10px 5px black',
-  },
-};
+  & > img {
+    width: 100%;
+    height: 100%;
+    background-image: url(${(props) => props.imgsrc});
+    ${(props) => {
+      if (props.privaterotate === "false") {
+        return css`
+          transform: rotateZ(0deg);
+          background-size: 100% 100%;
+        `;
+      } else {
+        return css`
+          transform: rotateZ(-90deg);
+          background-size: 100% 100%;
+        `;
+      }
+    }}
+    width: ${(props) => props.waitinginfo.width}px;
+    height: ${(props) => props.waitinginfo.height}px;
+  }
+`;
+
 function SecondDragCard(props) {
   const cardRef = useRef();
   const cardCount = props.count;
@@ -62,6 +78,16 @@ function SecondDragCard(props) {
   const [errorPos, setErrorPos] = useState({ x: 0, y: 0 });
   const [cardInfo, setCardInfo] = useState({ width: 0, height: 0, x: 0, y: 0 });
 
+  // const [waitingZoneInfo, setWaitingZoneInfo] = useState({
+  //   width: 0,
+  //   height: 0,
+  //   left: 0,
+  //   right: 0,
+  //   bottom: 0,
+  //   top: 0,
+  //   x: 0,
+  //   y: 0,
+  // });
   const carpetCenterX =
     -(carpetInfo.width / 2) -
     (waitingZoneInfo.x - carpetInfo.right) -
@@ -182,7 +208,24 @@ function SecondDragCard(props) {
   //   console.log("wait : ", waitingZoneInfo.x);
   //   console.log(temp.width);
   // }
+  const cardAniVar = {
+    initial: {
+      opacity: 1,
+    },
 
+    rotateTrue: {
+      rotateZ: -90,
+      opacity: 1,
+    },
+    rotateFalse: {
+      rotateZ: 0,
+      opacity: 1,
+    },
+    hover: {
+      scale: 1.1,
+      //boxShadow: '0 0 10px 5px black',
+    },
+  };
   useEffect(() => {
     let tempObj = cardRef.current.getBoundingClientRect();
     setCardInfo({
@@ -201,6 +244,19 @@ function SecondDragCard(props) {
       setPrivateRotate(true);
     }
   }, []);
+  // useEffect(() => {
+  //   let temp = refArr[2].current.getBoundingClientRect();
+  //   setWaitingZoneInfo({
+  //     width: temp.width,
+  //     height: temp.height,
+  //     left: temp.left,
+  //     right: temp.right,
+  //     bottom: temp.bottom,
+  //     top: temp.top,
+  //     x: temp.x,
+  //     y: temp.y,
+  //   });
+  // }, []);
   //console.log("f2", waitingZoneInfo.x);
   const testItem2 = () => {
     let temp;
@@ -373,16 +429,6 @@ function SecondDragCard(props) {
   };
   const onDoubleClickHandler = (e) => {
     //console.log(e.pageX);
-    if (
-      thisModelSecondCardInfoArr[CurrentSelectNum][cardCount].isInSpread !==
-      true
-    ) {
-      return;
-    }
-    // 여기에 다시 포지션 잡는 코드 실험해야함
-    let tempCard = cardRef.current.getBoundingClientRect();
-    let alpha;
-    let beta;
 
     let tempMulti = JSON.parse(JSON.stringify(multiModel));
     tempMulti[CurrentModelNumber].SecondSpread[
@@ -453,9 +499,18 @@ function SecondDragCard(props) {
   const onDragEndHandler = (e) => {
     let testX = e.pageX; // - e.offsetX - carpetInfo.x;
     let testY = e.pageY; // - e.offsetY - carpetInfo.y;
-
     let absCarpetBottom = absCarpetY + carpetInfo.height;
-
+    let alpha;
+    let beta;
+    let cardObj = cardRef.current.getBoundingClientRect();
+    let cardObjItem = {
+      x: cardObj.x,
+      y: cardObj.y,
+      width: cardObj.width,
+      height: cardObj.height,
+    };
+    let rotateTrueX = (waitingZoneInfo.height - waitingZoneInfo.width) / 2;
+    let rotateTrueY = -(waitingZoneInfo.height / 2 - waitingZoneInfo.width / 2);
     let tempObj = JSON.parse(JSON.stringify(multiModel));
     let tempCardInfo = {
       ...thisModelSecondCardInfoArr[CurrentSelectNum][cardCount],
@@ -464,55 +519,114 @@ function SecondDragCard(props) {
     // 카드의 상대적 위치
     //  absCarpetY
     // console.log(waitingZoneInfo.x);
-    console.log(e.pageX);
-    console.log(e.offsetX);
-    let alpha = waitingZoneInfo.x - (e.pageX - e.offsetX);
-    let beta = absWaitingY - (e.pageY - e.offsetY);
+    //console.log(e.pageX);
+    //console.log(e.offsetX);
+    //let errRotatePosX = rotateTrueX - (waitingZoneInfo.x - cardObjItem.x);
+    //let errRotatePosY = -(waitingZoneInfo.y - cardObjItem.y - rotateTrueY);
 
-    let cardObj = cardRef.current.getBoundingClientRect();
-    let cardObjItem = {
-      x: cardObj.x,
-      y: cardObj.y,
-    };
+    if (privateRotate === false) {
+      alpha = -(waitingZoneInfo.x - (e.pageX - e.offsetX));
+      beta = -(absWaitingY - (e.pageY - e.offsetY));
+    } else {
+      let tempX = (waitingZoneInfo.height - waitingZoneInfo.width) / 2;
+      let tempY = -(waitingZoneInfo.height / 2 - waitingZoneInfo.width / 2);
 
+      alpha = tempX - (waitingZoneInfo.x - (e.pageX - e.offsetY)); // 오케이
+      beta = -(
+        tempY +
+        (waitingZoneInfo.y - (e.pageY + e.offsetX - waitingZoneInfo.height))
+      );
+    }
+    //console.log(alpha);
+    //console.log(beta);
     // 에러 발생시 위치
     let gamma = waitingZoneInfo.x - carpetInfo.left;
     let delta = waitingZoneInfo.x - carpetInfo.right + cardInfo.width;
     let epsilon = carpetInfo.top - cardInfo.height;
     let zeta = carpetInfo.bottom - cardInfo.height * 2;
 
+    // Rotate False Error Pos
+    let errPosX = -(waitingZoneInfo.x - cardObjItem.x);
+    let errPosY = cardObjItem.y - waitingZoneInfo.y;
+    console.log("cardObjItem.y : ", cardObjItem.y);
+    console.log("waitingZoneInfo.y : ", waitingZoneInfo.y);
+    console.log("errPosY : ", errPosY);
+    let errLeft = -(waitingZoneInfo.x - carpetInfo.left);
+    console.log("waitingZoneInfo.x : ", waitingZoneInfo.x);
+    console.log("carpetInfo.left : ", carpetInfo.left);
+    console.log("errLeft : ", errLeft);
+    let errRight =
+      -(waitingZoneInfo.x - carpetInfo.right) - waitingZoneInfo.width;
+    let errTop = -(waitingZoneInfo.top - carpetInfo.top);
+    let errBottom = errTop + carpetInfo.height - waitingZoneInfo.height;
+
+    // Rotate True Error Pos
+    let errRotatePosX = rotateTrueX - (waitingZoneInfo.x - cardObjItem.x);
+    let errRotatePosY = -(waitingZoneInfo.y - cardObjItem.y - rotateTrueY);
+
+    let errRotateLeft = -(waitingZoneInfo.x - carpetInfo.left - rotateTrueX);
+    let errRotateRight = -(
+      waitingZoneInfo.x -
+      carpetInfo.right -
+      rotateTrueX +
+      waitingZoneInfo.height
+    );
+    let errRotateTop = rotateTrueY - (waitingZoneInfo.y - carpetInfo.top);
+    let errRotateBottom =
+      errRotateTop + carpetInfo.height - waitingZoneInfo.width;
+    console.log("carpetInfo : ", carpetInfo);
+    console.log("carpetInfo.bottom : ", carpetInfo.bottom);
+    console.log("testY : ", testY);
     if (
       testX >= carpetInfo.left &&
       testX <= carpetInfo.right &&
       testY >= absCarpetY &&
       testY <= absCarpetBottom
     ) {
-      console.log("success");
       // absWaitingY
       if (tempCardInfo.isDraged === true && tempCardInfo.isInSpread === true) {
-        tempCardInfo.privateX = -alpha;
-        tempCardInfo.privateY = -beta;
+        if (privateRotate === false) {
+          tempCardInfo.privateX = alpha;
+          tempCardInfo.privateY = beta;
 
-        tempObj[CurrentModelNumber].SecondSpread[
-          CurrentChildNumber
-        ].thisModelSecondCardInfoArr[CurrentSelectNum][cardCount] =
-          tempCardInfo;
+          tempObj[CurrentModelNumber].SecondSpread[
+            CurrentChildNumber
+          ].thisModelSecondCardInfoArr[CurrentSelectNum][cardCount] =
+            tempCardInfo;
+        } else {
+          tempCardInfo.privateX = errRotatePosX;
+          tempCardInfo.privateY = errRotatePosY;
+
+          tempObj[CurrentModelNumber].SecondSpread[
+            CurrentChildNumber
+          ].thisModelSecondCardInfoArr[CurrentSelectNum][cardCount] =
+            tempCardInfo;
+        }
         setMultiModel(tempObj);
       }
     } else {
-      let tempObj = JSON.parse(JSON.stringify(multiModel));
+      //let tempObj = JSON.parse(JSON.stringify(multiModel));
 
       if (testX < carpetInfo.left) {
         console.log("좌");
-        console.log(cardObjItem.x);
-        let temp = -gamma;
-        let temp2 = cardObjItem.y - waitingZoneInfo.y;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateX = temp;
-        tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
-          CurrentChildNumber
-        ][cardCount].privateY = temp2;
+        //console.log(cardObjItem.x);
+        if (privateRotate === false) {
+          let temp = -gamma;
+          let temp2 = cardObjItem.y - waitingZoneInfo.y;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = errLeft;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = errPosY;
+        } else {
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateX = temp;
+          tempObj[CurrentModelNumber].thisModelFirstCardInfoArr[
+            CurrentChildNumber
+          ][cardCount].privateY = temp2;
+        }
         // -(waitingZoneInfo.top - carpetInfo.top) +
         // e.offsetY -
         // waitingZoneInfo.height -
@@ -651,15 +765,19 @@ function SecondDragCard(props) {
     <Draggable nodeRef={cardRef}>
       <MultiDragCardWrapper
         ref={cardRef}
+        imgsrc={
+          privateRotate === true
+            ? `${process.env.PUBLIC_URL}/img/Default0.png`
+            : `${process.env.PUBLIC_URL}/img/cut1_s.png`
+        }
         drag
-        waitinginfo={waitingZoneInfo}
-        onDoubleClick={(e) => onDoubleClickHandler(e)}
         dragMomentum={false}
         onDragStart={(e) => onDragStartHandler(e)}
         onDrag={(e) => onDragTestHandler(e)}
         onDragEnd={(e) => {
           onDragEndHandler(e);
         }}
+        onDoubleClick={(e) => onDoubleClickHandler(e)}
         dragConstraints={
           thisModelSecondCardInfoArr[CurrentSelectNum][cardCount].isInSpread ===
           false
@@ -672,13 +790,15 @@ function SecondDragCard(props) {
             ? true
             : false
         }
+        waitinginfo={waitingZoneInfo}
         variants={cardAniVar}
         initial="initial"
-        animate={privateRotate === true ? "rotateTrue" : "rotateFalse"}
-        whileDrag="hover"
+        privaterotate={privateRotate === true ? "true" : "false"}
+        //animate={privateRotate === true ? "rotateTrue" : "rotateFalse"}
+        //whileDrag="hover"
         style={testItem2()}
       >
-        {cardCount}
+        <img alt="" />
       </MultiDragCardWrapper>
     </Draggable>
   );
